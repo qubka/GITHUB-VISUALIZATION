@@ -131,3 +131,32 @@ getFollowersInformation <- function(username)
     
     return(dataDF)
 }
+
+# Load another important plotting package
+library(plotly)
+
+# Generate data for followers and repository starting at user 'paulmillr'
+currentUser         <- "paulmillr"
+x                   <- getFollowers(currentUser)
+followersUsernames  <- x$user
+numberOfFollowers   <- length(x$userID)
+info                <- getFollowersInformation(currentUser)
+
+i <- 1
+while(nrow(info) < 15000)
+{
+    current <- followersUsernames[i]
+    newData <- getFollowersInformation(current)
+    info    <- rbind(newData, info)
+    i       <- i + 1
+}
+info <- distinct(info)
+
+#Use plotly to graph the relationship between a users number of followers and repositories 
+scatter <-  plot_ly(data = info, x = ~numberOfFollowers, y = ~numberOfRepositories,
+            text = ~paste("User: ", userName, '<br>Followers: ', numberOfFollowers, '<br>Repository:', numberOfRepositories),
+            marker = list(size = 10, color = 'rgba(255, 182, 193, .9)',
+            line = list(color = 'rgba(152, 0, 0, .8)', width = 2))) %>%
+            layout(title = 'Relationship between Followers and Repositories',yaxis = list(zeroline = F), xaxis = list(zeroline = F),
+            plot_bgcolor='rgba(63, 191, 165,0.2)')
+scatter
