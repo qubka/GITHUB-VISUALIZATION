@@ -39,10 +39,12 @@ getFollowers <- function(username)
         }, error = function(cond) { 
             print(followersContent)
             message(cond) 
+            Sys.sleep(3600.0) # API rate limit exceeded for user ID
             return(followersDF)
         } , warning = function(cond) {
             print(followersContent)
             message(cond) 
+            Sys.sleep(3600.0) # API rate limit exceeded for user ID
             return(followersDF)
         })
         
@@ -74,11 +76,13 @@ getRepositories <- function(username)
             }) %>% bind_rows()
         }, error = function(cond) {
             print(repositoriesContent)
-            message(cond) 
+            message(cond)
+            Sys.sleep(3600.0) # API rate limit exceeded for user ID
             return(repositoriesDF)
         } , warning = function(cond) {
             print(repositoriesContent)
             message(cond) 
+            Sys.sleep(3600.0) # API rate limit exceeded for user ID
             return(repositoriesDF)
         })
         
@@ -126,8 +130,7 @@ languagesVisualization <- function(username)
     z   <- getLanguages(username)
     x   <- data.frame(table(z$language), stringsAsFactors=F)
 
-    pie <-  plot_ly(data = x, labels = ~Var1, values = ~Freq, type = 'pie') %>% 
-            layout(title = paste('Languages used by Github User', username), xaxis = list(showgrid = F, zeroline = F, showticklabels = F), yaxis = list(showgrid = F, zeroline = F, showticklabels = F))
+    pie <-  plot_ly(data = x, labels = ~Var1, values = ~Freq, type = 'pie') %>% layout(title = paste('Languages used by Github User :', username))
 
     return(pie)
 }
@@ -160,8 +163,8 @@ getFollowersInformation <- function(username)
 # Load another important plotting package
 require(plotly)
 
-# Generate data for followers and repository starting at user 'phadej'
-currentUser         <- "phadej"
+# Generate data for followers and repository starting at user 'paulmillr'
+currentUser         <- "paulmillr"
 x                   <- getFollowers(currentUser)
 followersUsernames  <- x$user
 numberOfFollowers   <- length(x$userID)
@@ -169,7 +172,7 @@ info                <- getFollowersInformation(currentUser)
 
 i <- 1
 size <- nrow(info)
-while(size < 1000)
+while(size < 15000)
 {
     
     current <- followersUsernames[[i]]
@@ -186,19 +189,19 @@ scatter <-  plot_ly(data = info, x = ~numberOfFollowers, y = ~numberOfRepositori
             marker = list(size = 10, color = 'rgba(255, 182, 193, .9)',
             line = list(color = 'rgba(152, 0, 0, .8)', width = 2))) %>%
             layout(title = 'Relationship between Followers and Repositories', yaxis = list(zeroline = F), xaxis = list(zeroline = F),
-            plot_bgcolor='rgba(63, 191, 165,0.2)')
+            plot_bgcolor='rgba(204, 255, 229, 0.2)')
 scatter
 
 # Extracting data for users with over 1000 followers or repositories
-mostFollowers       <- info[which(info$numberOfFollowers >= 1000),]
+mostFollowers       <- info[which(info$numberOfFollowers >= 1000), ]
 mostFollowers$code  <- 1
-mostRepos           <- info[which(info$numberOfRepositories >= 1000),]
+mostRepos           <- info[which(info$numberOfRepositories >= 1000), ]
 mostRepos$code      <- 0
 combined <- rbind(mostFollowers, mostRepos)
 scatter2 <- plot_ly(data = combined, x = ~numberOfFollowers, y = ~numberOfRepositories, color = ~code, colors = "Set1", type = "scatter", mode = "markers",
             text = ~paste("User: ", userName, '<br>Followers: ', numberOfFollowers, '<br>Repository:', numberOfRepositories)) %>%
             layout(title = 'Most Followers and Repositories', yaxis = list(zeroline = F), xaxis = list(zeroline = F),
-            plot_bgcolor='rgba(63, 191, 165,0.2)')
+            plot_bgcolor='rgba(204, 255, 229, 0.2)')
 scatter2
 
 # Language information about user
