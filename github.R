@@ -14,9 +14,9 @@ url_git <- 'https://api.github.com/users/'
 
 # Set and get my github token 
 token <- config(token = oauth2.0_token(oauth_endpoints("github"), 
-                              oauth_app(appname = "RGitHub_Access", 
-                              key = "6141c2c391718b210db8", 
-                              secret = "d9248f312fbd73f3cbbf3f4cdb54807fbfc6118d")))
+                        oauth_app(appname = "Git_API", 
+                        key = "e1dc9916e527c5bf68f7", 
+                        secret = "1547dc09069d0e1eef0a3cc650fb2d9f9df5a5cc")))
 
 # Returns a dataframe with information on the Current Users Followers 
 getFollowers <- function(username)
@@ -30,13 +30,20 @@ getFollowers <- function(username)
         followers           <- GET(paste0(url_git, username, "/followers?per_page=100&page=", i), token)
         followersContent    <- content(followers)
         
+        currentFollowersDF <- data.frame()
         tryCatch({
             currentFollowersDF  <- lapply(followersContent, function(x) 
             {
                 df <- data.frame(user = x$login, userID = x$id, followersURL = x$followers_url, followingURL = x$following_url, stringsAsFactors=F)
             }) %>% bind_rows()
-            }, error= function(e) {
-            cat("ERROR : ", conditionMessage(e), "\n")
+        }, error = function(cond) { 
+            print(followersContent)
+            message(cond) 
+            return(followersDF)
+        } , warning = function(cond) {
+            print(followersContent)
+            message(cond) 
+            return(followersDF)
         })
         
         i <- i + 1
@@ -59,13 +66,20 @@ getRepositories <- function(username)
         repositories            <- GET(paste0(url_git, username, "/repos?per_page=100&page=", i), token)
         repositoriesContent     <- content(repositories)
         
+        currentRepositoriesDF <- data.frame()
         tryCatch({
             currentRepositoriesDF   <- lapply(repositoriesContent, function(x) 
             {
                 df <- data.frame(repo = x$name, id = x$id, commits = x$git_commits_url, language = x$languages, stringsAsFactors=F)
             }) %>% bind_rows()
-        }, error= function(e) {
-            cat("ERROR : ", conditionMessage(e), "\n")
+        }, error = function(cond) {
+            print(repositoriesContent)
+            message(cond) 
+            return(repositoriesDF)
+        } , warning = function(cond) {
+            print(repositoriesContent)
+            message(cond) 
+            return(repositoriesDF)
         })
         
         i <- i + 1
@@ -112,7 +126,7 @@ languagesVisualization <- function(username)
     z   <- getLanguages(username)
     x   <- data.frame(table(z$language), stringsAsFactors=F)
 
-    pie <-  plot_ly(data =x, labels = ~Var1, values = ~Freq, type = 'pie') %>% 
+    pie <-  plot_ly(data = x, labels = ~Var1, values = ~Freq, type = 'pie') %>% 
             layout(title = paste('Languages used by Github User', username), xaxis = list(showgrid = F, zeroline = F, showticklabels = F), yaxis = list(showgrid = F, zeroline = F, showticklabels = F))
 
     return(pie)
@@ -132,7 +146,7 @@ getFollowersInformation <- function(username)
         if(!length(userName)) break
         repository            <- getRepositories(userName)
         followers             <- getFollowers(userName) 
-        numberOfRepositories  <- length(repository$repository)
+        numberOfRepositories  <- length(repository$repo)
         numberOfFollowers     <- length(followers$user)
         bindDF                <- data.frame(userName, numberOfRepositories, numberOfFollowers, stringsAsFactors=F)
         dataDF                <- rbind(dataDF, bindDF)
@@ -146,8 +160,8 @@ getFollowersInformation <- function(username)
 # Load another important plotting package
 require(plotly)
 
-# Generate data for followers and repository starting at user 'paulmillr'
-currentUser         <- "paulmillr"
+# Generate data for followers and repository starting at user 'phadej'
+currentUser         <- "phadej"
 x                   <- getFollowers(currentUser)
 followersUsernames  <- x$user
 numberOfFollowers   <- length(x$userID)
@@ -155,14 +169,14 @@ info                <- getFollowersInformation(currentUser)
 
 i <- 1
 size <- nrow(info)
-while(size < 15000)
+while(size < 1000)
 {
     
     current <- followersUsernames[[i]]
     bind    <- getFollowersInformation(current)
     info    <- rbind(bind, info)
     i       <- i + 1
-    if(i > size) break
+    if(i > size-1) break
 }
 info <- distinct(info)
 
@@ -175,10 +189,10 @@ scatter <-  plot_ly(data = info, x = ~numberOfFollowers, y = ~numberOfRepositori
             plot_bgcolor='rgba(63, 191, 165,0.2)')
 scatter
 
-# Extracting data for users with over 10000 followers or repositories
-mostFollowers       <- info[which(info$numberOfFollowers >= 10000),]
+# Extracting data for users with over 1000 followers or repositories
+mostFollowers       <- info[which(info$numberOfFollowers >= 1000),]
 mostFollowers$code  <- 1
-mostRepos           <- info[which(info$numberOfRepositories >= 10000),]
+mostRepos           <- info[which(info$numberOfRepositories >= 1000),]
 mostRepos$code      <- 0
 combined <- rbind(mostFollowers, mostRepos)
 scatter2 <- plot_ly(data = combined, x = ~numberOfFollowers, y = ~numberOfRepositories, color = ~code, colors = "Set1", type = "scatter", mode = "markers",
