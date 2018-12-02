@@ -50,6 +50,7 @@ getFollowers <- function(username)
         
         i <- i + 1
         x <- length(followersContent)
+        if(i > 50) x <- 0 # Avoid big amount of folowers
         followersDF <- rbind(followersDF, currentFollowersDF)
     }
 
@@ -88,10 +89,37 @@ getRepositories <- function(username)
         
         i <- i + 1
         x <- length(repositoriesContent)
+        if(i > 50) x <- 0 # Avoid big amount of folowers
         repositoriesDF <- rbind(repositoriesDF, currentRepositoriesDF)
     }
     
     return(repositoriesDF)
+}
+
+# Returns a number of folowers and repositories on the Current User
+getNumberRepositoriesAndFollowers <- function(username)
+{
+    followers            <- GET(paste0(url_git, username), token)
+    followersContent     <- content(followers)
+
+    numberOfFolowers     <- 0
+    numberOfRepositories <- 0
+    currentAmountDF <- data.frame(reponum = 0, folowersnum = 0)
+    tryCatch({
+        numberOfFolowers     <- followersContent$followers
+        numberOfRepositories <- followersContent$public_repos
+    }, error = function(cond) {
+        message(cond)
+        Sys.sleep(3600.0) # API rate limit exceeded for user ID
+        return(currentAmountDF)
+    } , warning = function(cond) {
+        message(cond) 
+        Sys.sleep(3600.0) # API rate limit exceeded for user ID
+        return(currentAmountDF)
+    })
+    
+    currentAmountDF <- data.frame(reponum = numberOfFolowers, folowersnum = numberOfRepositories)
+    return(currentAmountDF)
 }
 
 # Returns a dataframe with the language used in each of the users repository
@@ -143,14 +171,15 @@ getFollowersInformation <- function(username)
     followersUsernames <- followersDF$user
     dataDF <- data.frame()
 
+    #cat("Amount of folowers: ", numberOfFollowers, "\n")
+    
     for(i in 1:numberOfFollowers)
     {
         userName              <- followersUsernames[[i]]
         if(!length(userName)) break
-        repository            <- getRepositories(userName)
-        followers             <- getFollowers(userName) 
-        numberOfRepositories  <- length(repository$repo)
-        numberOfFollowers     <- length(followers$user)
+        userDF                <- getNumberRepositoriesAndFollowers(userName)
+        numberOfRepositories  <- userDF$reponum
+        numberOfFollowers     <- userDF$folowersnum
         bindDF                <- data.frame(userName, numberOfRepositories, numberOfFollowers, stringsAsFactors=F)
         dataDF                <- rbind(dataDF, bindDF)
         
@@ -172,10 +201,10 @@ info                <- getFollowersInformation(currentUser)
 
 i <- 1
 size <- nrow(info)
-while(size < 15000)
+while(size < 10000)
 {
-    
     current <- followersUsernames[[i]]
+    #cat("Main start", current, "\n")
     bind    <- getFollowersInformation(current)
     info    <- rbind(bind, info)
     i       <- i + 1
